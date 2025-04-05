@@ -1,30 +1,20 @@
+'use client';
+
 const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 const contractABI = [
-    {
-        "inputs": [{ "internalType": "string", "name": "name", "type": "string" }],
-        "name": "createAccount",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "address", "name": "pubkey", "type": "address" }],
-        "name": "checkUserExists",
-        "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "address", "name": "pubkey", "type": "address" }],
-        "name": "getUsername",
-        "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
+
     {
         "inputs": [
-            { "internalType": "address", "name": "friend_key", "type": "address" },
-            { "internalType": "string", "name": "name", "type": "string" }
+            {
+                "internalType": "address",
+                "name": "friend_key",
+                "type": "address"
+            },
+            {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+            }
         ],
         "name": "addFriend",
         "outputs": [],
@@ -32,25 +22,129 @@ const contractABI = [
         "type": "function"
     },
     {
-        "inputs": [{ "internalType": "address", "name": "friend_key", "type": "address" }],
-        "name": "readMessage",
-        "outputs": [{
-            "components": [
-                { "internalType": "address", "name": "sender", "type": "address" },
-                { "internalType": "uint256", "name": "timestamp", "type": "uint256" },
-                { "internalType": "string", "name": "msg", "type": "string" }
-            ],
-            "internalType": "struct Database.message[]",
-            "name": "",
-            "type": "tuple[]"
-        }],
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "pubkey",
+                "type": "address"
+            }
+        ],
+        "name": "checkUserExists",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
         "stateMutability": "view",
         "type": "function"
     },
     {
         "inputs": [
-            { "internalType": "address", "name": "friend_key", "type": "address" },
-            { "internalType": "string", "name": "_msg", "type": "string" }
+            {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+            }
+        ],
+        "name": "createAccount",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getMyFriendList",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "pubkey",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "name",
+                        "type": "string"
+                    }
+                ],
+                "internalType": "struct Database.friend[]",
+                "name": "",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "pubkey",
+                "type": "address"
+            }
+        ],
+        "name": "getUsername",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "friend_key",
+                "type": "address"
+            }
+        ],
+        "name": "readMessage",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "sender",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "timestamp",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "msg",
+                        "type": "string"
+                    }
+                ],
+                "internalType": "struct Database.message[]",
+                "name": "",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "friend_key",
+                "type": "address"
+            },
+            {
+                "internalType": "string",
+                "name": "_msg",
+                "type": "string"
+            }
         ],
         "name": "sendMessage",
         "outputs": [],
@@ -195,7 +289,8 @@ async function sendMessage() {
         await contract.methods.sendMessage(friendAddress, message).send({ from: accounts[0] });
         document.getElementById("messageInput").value = "";
         alert("Message sent successfully!");
-        readMessages();
+        setTimeout(readMessages, 1500); // wait 1.5 seconds
+        await readMessages();
     } catch (error) {
         console.error("Error sending message:", error);
         alert("Transaction failed. Check console for details.");
@@ -228,14 +323,29 @@ async function readMessages() {
             return;
         }
 
-        const messages = await contract.methods.readMessage(friendAddress).call();
-        let messageBox = document.getElementById("messageBox");
-        messageBox.innerHTML = ""; // Clear previous messages
 
-        messages.forEach(msg => {
+        //console.log("Sending message from:", accounts[0], "to:", friendAddress, "Message:", messages);
+
+        const messages = await contract.methods.readMessage(friendAddress).call({ from: accounts[0] });
+        //console.log("Messages:", messages);
+
+
+        const messageBox = document.getElementById("messageBox"); // or whatever your container is called
+        messageBox.innerHTML = ""; // Clear old messages if needed
+
+        messages.forEach((msg) => {
+            const sender = msg[0];
+            const timestamp = parseInt(msg[1]);
+            const text = msg[2];
+
             const messageElement = document.createElement("div");
-            messageElement.className = msg.sender.toLowerCase() === accounts[0].toLowerCase() ? "message sender" : "message receiver";
-            messageElement.textContent = `${msg.sender.substring(0, 6)}: ${msg.msg}`;
+            messageElement.className = sender.toLowerCase() === accounts[0].toLowerCase() ? "message sender" : "message receiver";
+
+            messageElement.innerHTML = `
+    <strong>${sender.substring(0, 6)}</strong>: ${text} <br/>
+    <small>${new Date(timestamp * 1000).toLocaleString()}</small>
+  `;
+
             messageBox.appendChild(messageElement);
         });
     } catch (error) {
@@ -244,6 +354,30 @@ async function readMessages() {
     }
 }
 
+async function displayMessages() {
+    const friendAddress = "0xdF3e18d64BC6A983f673Ab319CCaE4f1a57C7097";
+    const myAddress = "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199";
+
+    const messages = await contract.methods.readMessage(friendAddress).call({ from: myAddress });
+
+    const container = document.getElementById("messageBox");
+    container.innerHTML = "";
+
+    if (messages.length === 0) {
+        container.innerText = "No messages.";
+        return;
+    }
+
+    messages.forEach(m => {
+        const sender = m.sender || m[0];
+        const timestamp = m.timestamp || m[1];
+        const text = m.msg || m[2];
+
+        const div = document.createElement("div");
+        div.innerHTML = `<strong>${sender}</strong> <br><small>${new Date(timestamp * 1000).toLocaleString()}</small><br>${text}<hr>`;
+        container.appendChild(div);
+    });
+}
 
 //jesna  : 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
 //harsh  : 0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097
